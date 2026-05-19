@@ -37,6 +37,20 @@ class APIEndpointTests(TransactionTestCase):
 
     @classmethod
     def tearDownClass(cls):
+        # Matar forzosamente otras conexiones (de hilos ASGI/TestClient) en PostgreSQL
+        # para que Django pueda destruir la base de datos sin errores
+        from django.db import connection
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute('''
+                    SELECT pg_terminate_backend(pg_stat_activity.pid)
+                    FROM pg_stat_activity
+                    WHERE pg_stat_activity.datname = current_database()
+                      AND pid <> pg_backend_pid();
+                ''')
+        except Exception:
+            pass
+            
         connections.close_all()
         super().tearDownClass()
 
