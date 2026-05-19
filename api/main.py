@@ -183,6 +183,91 @@ def _perfil(username, authorization):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# ── GESTIÓN DE USUARIOS (solo admin) ─────────────────────────────
+class CambiarRolRequest(BaseModel):
+    rol: str
+
+def _get_user_from_auth_header(authorization):
+    from apps.accounts.models import CustomUser
+    if not authorization or "mock_access_token_" not in authorization:
+        return None
+    try:
+        user_id = authorization.split("mock_access_token_")[-1].strip()
+        return CustomUser.objects.filter(id=user_id).first()
+    except Exception:
+        return None
+
+def _require_admin_user(authorization):
+    user = _get_user_from_auth_header(authorization)
+    if not user:
+        raise HTTPException(status_code=401, detail="No autenticado")
+    if not user.es_admin():
+        raise HTTPException(status_code=403, detail="Solo administradores pueden gestionar usuarios")
+    return user
+
+@app.get("/v1/usuarios/")
+async def listar_usuarios(authorization: Optional[str] = Header(None)):
+    return await sync_to_async(_listar_usuarios)(authorization)
+
+def _listar_usuarios(authorization):
+    _require_admin_user(authorization)
+    from apps.accounts.models import CustomUser
+    usuarios = CustomUser.objects.exclude(
+        rol=CustomUser.ADMIN,
+    ).filter(is_superuser=False).order_by('username')
+    return [
+        {
+            "id": str(u.id),
+            "username": u.username,
+            "nombre_completo": u.nombre_completo or "",
+            "correo": u.correo or u.email or "",
+            "rol": u.rol,
+            "rol_label": u.get_rol_display(),
+        }
+        for u in usuarios
+    ]
+
+@app.patch("/v1/usuarios/{user_id}/rol/")
+async def cambiar_rol_usuario_api(
+    user_id: str,
+    data: CambiarRolRequest,
+    authorization: Optional[str] = Header(None),
+):
+    return await sync_to_async(_cambiar_rol_usuario_api)(user_id, data, authorization)
+
+def _cambiar_rol_usuario_api(user_id, data, authorization):
+    from apps.accounts.models import CustomUser
+    admin = _require_admin_user(authorization)
+    if data.rol not in (CustomUser.OPERADOR, CustomUser.CONSULTOR):
+        raise HTTPException(status_code=400, detail="Rol no válido. Use operador o consultor")
+    try:
+        usuario = CustomUser.objects.get(pk=user_id)
+    except CustomUser.DoesNotExist:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    if usuario.es_admin() or usuario.is_superuser:
+        raise HTTPException(status_code=403, detail="No se puede modificar el rol de un administrador")
+    if usuario.rol == data.rol:
+        return {
+            "status": "ok",
+            "message": f"{usuario.username} ya tiene el rol {usuario.get_rol_display()}",
+            "rol": usuario.rol,
+            "rol_label": usuario.get_rol_display(),
+        }
+    rol_anterior = usuario.get_rol_display()
+    usuario.rol = data.rol
+    usuario.save(update_fields=['rol'])
+    _registrar_auditoria(
+        admin,
+        'cambio_rol',
+        f"Rol de {usuario.username}: {rol_anterior} → {usuario.get_rol_display()}",
+    )
+    return {
+        "status": "ok",
+        "message": f"Rol actualizado a {usuario.get_rol_display()}",
+        "rol": usuario.rol,
+        "rol_label": usuario.get_rol_display(),
+    }
+
 # ── 2FA ENDPOINTS ──────────────────────────────────────────────────
 class Verify2FARequest(BaseModel):
     token: str
