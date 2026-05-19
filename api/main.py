@@ -4,7 +4,20 @@ from fastapi import FastAPI, HTTPException, Header
 from pydantic import BaseModel
 from typing import Optional
 from uuid import UUID
-from asgiref.sync import sync_to_async
+from asgiref.sync import sync_to_async as _original_sync_to_async
+from django.db import close_old_connections
+from functools import wraps
+
+def sync_to_async(func, *args, **kwargs):
+    @wraps(func)
+    def wrapper(*func_args, **func_kwargs):
+        close_old_connections()
+        try:
+            return func(*func_args, **func_kwargs)
+        finally:
+            close_old_connections()
+    return _original_sync_to_async(wrapper, *args, **kwargs)
+
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 django.setup()
