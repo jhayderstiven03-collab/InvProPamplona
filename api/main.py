@@ -31,6 +31,7 @@ app = FastAPI(
 )
 
 from fastapi.responses import JSONResponse
+from django.utils.timezone import localtime
 import traceback
 
 @app.exception_handler(Exception)
@@ -331,7 +332,7 @@ def _get_dashboard_data(authorization):
                 "producto": mov.producto.sku,
                 "producto_nombre": mov.producto.nombre,
                 "cantidad": float(mov.cantidad),
-                "fecha":    mov.created_at.strftime('%d/%m %H:%M'),
+                "fecha":    localtime(mov.created_at).strftime('%d/%m %H:%M'),
                 "usuario":  mov.usuario.username,
             })
 
@@ -363,7 +364,7 @@ def _get_dashboard_data(authorization):
             "producto": mov.producto.sku,
             "producto_nombre": mov.producto.nombre,
             "cantidad": float(mov.cantidad),
-            "fecha":    mov.created_at.strftime('%d/%m %H:%M'),
+            "fecha":    localtime(mov.created_at).strftime('%d/%m %H:%M'),
             "usuario":  mov.usuario.username,
         })
 
@@ -606,7 +607,7 @@ def _registrar_movimiento(data, username, authorization):
             "cantidad":   float(mov.cantidad),
             "nota":       mov.nota,
             "usuario":    mov.usuario.username,
-            "created_at": mov.created_at.strftime('%d/%m/%Y %H:%M'),
+            "created_at": localtime(mov.created_at).strftime('%d/%m/%Y %H:%M'),
         }
     except ValidationError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -636,7 +637,7 @@ def _listar_movimientos(tipo, limite):
         "cantidad":   float(m.cantidad),
         "nota":       m.nota,
         "usuario":    m.usuario.username,
-        "created_at": m.created_at.strftime('%d/%m/%Y %H:%M'),
+        "created_at": localtime(m.created_at).strftime('%d/%m/%Y %H:%M'),
     } for m in qs]
 
 # ── CATEGORIAS — LISTAR ───────────────────────────────────────────
@@ -790,7 +791,7 @@ def _listar_historial(tipo, limite):
         "tipo_label":   h.get_tipo_display(),
         "detalle":      h.detalle,
         "metadata":     h.metadata,
-        "created_at":   h.created_at.strftime('%d/%m/%Y %H:%M'),
+        "created_at":   localtime(h.created_at).strftime('%d/%m/%Y %H:%M'),
     } for h in qs]
 
 # ── HELPER ────────────────────────────────────────────────────────
