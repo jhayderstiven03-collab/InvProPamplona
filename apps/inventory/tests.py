@@ -34,10 +34,12 @@ class APIEndpointTests(TransactionTestCase):
         )
 
     def tearDown(self):
-        # Cerrar todas las conexiones activas a la base de datos de prueba
-        # para evitar el error 'database is being accessed by other users' al destruir la BD
-        for conn in connections.all():
-            conn.close()
+        # Cerrar el cliente ASGI para terminar los hilos de fondo de FastAPI
+        self.client.close()
+        # Forzar el cierre de todas las conexiones para que PostgreSQL permita destruir la BD
+        from django.db import connections
+        for alias in connections:
+            connections[alias].close()
 
     def test_obtener_productos(self):
         # Enviar petición GET al endpoint de productos
