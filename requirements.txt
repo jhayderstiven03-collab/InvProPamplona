@@ -17,6 +17,7 @@ django-tailwind==4.4.2
 djangorestframework==3.17.1
 djangorestframework_simplejwt==5.5.1
 fastapi==0.135.3
+httpx==0.27.0
 gunicorn==25.3.0
 h11==0.16.0
 idna==3.11
