@@ -1,10 +1,11 @@
-from django.test import TestCase
+from django.test import TransactionTestCase
 from fastapi.testclient import TestClient
 from api.main import app
 from apps.inventory.models import Categoria, Producto
 from apps.accounts.models import CustomUser
+from django.db import connections
 
-class APIEndpointTests(TestCase):
+class APIEndpointTests(TransactionTestCase):
     def setUp(self):
         self.client = TestClient(app)
         
@@ -31,6 +32,12 @@ class APIEndpointTests(TestCase):
             nombre_completo="Admin Test",
             correo="admin@test.com"
         )
+
+    def tearDown(self):
+        # Cerrar todas las conexiones activas a la base de datos de prueba
+        # para evitar el error 'database is being accessed by other users' al destruir la BD
+        for conn in connections.all():
+            conn.close()
 
     def test_obtener_productos(self):
         # Enviar petición GET al endpoint de productos
