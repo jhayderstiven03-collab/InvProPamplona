@@ -24,7 +24,7 @@ pip install -r requirements.txt
 cp .env.example .env      # Editar con tus credenciales
 python manage.py migrate
 python manage.py tailwind install
-python manage.py runserver
+uvicorn config.asgi:application --reload --port 8000
 ```
 ### Variables de entorno (.env)
 ```

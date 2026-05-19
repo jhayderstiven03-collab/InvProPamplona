@@ -18,6 +18,10 @@ class CustomUser(AbstractUser):
             default=uuid.uuid4, editable=False)
     rol = models.CharField(max_length=10,
             choices=ROL_CHOICES, default=OPERADOR)
+    nombre_completo = models.CharField(max_length=200, blank=True)
+    correo          = models.EmailField(blank=True)
+    telefono        = models.CharField(max_length=20, blank=True)
+    direccion       = models.TextField(blank=True)
 
     def es_admin(self):
         return self.rol == self.ADMIN

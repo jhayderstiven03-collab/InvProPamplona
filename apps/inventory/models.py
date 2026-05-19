@@ -6,10 +6,18 @@ class Categoria(models.Model):
     id          = models.UUIDField(primary_key=True,
                     default=uuid.uuid4, editable=False)
     nombre      = models.CharField(max_length=100, unique=True)
+    prefix      = models.CharField(max_length=5, unique=True, blank=True)
     descripcion = models.TextField(blank=True, default='')
     is_active   = models.BooleanField(default=True)
     created_at  = models.DateTimeField(auto_now_add=True)
     updated_at  = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        if not self.prefix:
+            import re
+            limpio = re.sub(r'[^A-Z]', '', self.nombre.upper())
+            self.prefix = limpio[:3] if limpio else 'GEN'
+        super().save(*args, **kwargs)
 
     class Meta:
         verbose_name        = 'Categoria'

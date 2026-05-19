@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     'apps.accounts',
     'apps.inventory',
     'apps.movements',
+    'apps.audit',
 ]
 
 REST_FRAMEWORK = {

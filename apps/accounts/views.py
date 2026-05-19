@@ -120,7 +120,7 @@ def vista_dashboard_operador(request):
     from apps.movements.models import Movimiento
     from django.utils import timezone
 
-    hoy = timezone.now().date()
+    hoy = timezone.localdate()
 
     productos = Producto.objects.select_related('categoria').filter(is_active=True)
     alertas   = productos.filter(stock_actual__lte=0).count()
@@ -165,7 +165,7 @@ def vista_mis_movimientos(request):
     from apps.movements.models import Movimiento
     from django.utils import timezone
 
-    hoy = timezone.now().date()
+    hoy = timezone.localdate()
 
     entradas_hoy = Movimiento.objects.filter(
         usuario=request.user, created_at__date=hoy, tipo='entrada').count()

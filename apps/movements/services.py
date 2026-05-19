@@ -65,7 +65,7 @@ def obtener_resumen_movimientos(dias=7):
     from django.db.models import Sum
     from datetime import timedelta
 
-    hoy = timezone.now().date()
+    hoy = timezone.localdate()
     desde = hoy - timedelta(days=dias - 1)
 
     resultado = []
