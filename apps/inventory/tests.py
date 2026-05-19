@@ -7,8 +7,6 @@ from django.db import connections
 
 class APIEndpointTests(TransactionTestCase):
     def setUp(self):
-        self.client = TestClient(app)
-        
         # Crear datos de prueba en la base de datos limpia de Django
         self.categoria = Categoria.objects.create(
             nombre="Bebidas",
@@ -34,55 +32,55 @@ class APIEndpointTests(TransactionTestCase):
         )
 
     def tearDown(self):
-        # Cerrar el cliente ASGI para terminar los hilos de fondo de FastAPI
-        self.client.close()
-        # Forzar el cierre de todas las conexiones para que PostgreSQL permita destruir la BD
-        from django.db import connections
-        for alias in connections:
-            connections[alias].close()
+        # Forzar el cierre de todas las conexiones manejadas por Django
+        connections.close_all()
+
+    @classmethod
+    def tearDownClass(cls):
+        connections.close_all()
+        super().tearDownClass()
 
     def test_obtener_productos(self):
-        # Enviar petición GET al endpoint de productos
-        response = self.client.get("/v1/productos/")
-        self.assertEqual(response.status_code, 200)
-        
-        # Verificar que el producto de prueba esté en la respuesta
-        data = response.json()
-        self.assertTrue(len(data) >= 1)
-        self.assertEqual(data[0]["nombre"], "Coca Cola")
-        self.assertEqual(data[0]["sku"], "BEB-001")
+        # Usar TestClient como context manager garantiza que se disparen
+        # los eventos de apagado (shutdown) de FastAPI y se liberen hilos/conexiones.
+        with TestClient(app) as client:
+            response = client.get("/v1/productos/")
+            self.assertEqual(response.status_code, 200)
+            
+            data = response.json()
+            self.assertTrue(len(data) >= 1)
+            self.assertEqual(data[0]["nombre"], "Coca Cola")
+            self.assertEqual(data[0]["sku"], "BEB-001")
 
     def test_obtener_categorias(self):
-        # Enviar petición GET al endpoint de categorías
-        response = self.client.get("/v1/categorias/")
-        self.assertEqual(response.status_code, 200)
-        
-        # Verificar que la categoría de prueba esté en la respuesta
-        data = response.json()
-        self.assertTrue(len(data) >= 1)
-        self.assertEqual(data[0]["nombre"], "Bebidas")
+        with TestClient(app) as client:
+            response = client.get("/v1/categorias/")
+            self.assertEqual(response.status_code, 200)
+            
+            data = response.json()
+            self.assertTrue(len(data) >= 1)
+            self.assertEqual(data[0]["nombre"], "Bebidas")
 
     def test_obtener_dashboard(self):
-        # Enviar petición GET al dashboard sin autenticación
-        # (Debería responder 200 con el comportamiento global de admin por defecto en fallback)
-        response = self.client.get("/v1/dashboard/")
-        self.assertEqual(response.status_code, 200)
-        
-        data = response.json()
-        self.assertIn("total_productos", data)
-        self.assertIn("entradas_hoy", data)
-        self.assertIn("salidas_hoy", data)
-        self.assertIn("alertas_activas", data)
-        self.assertEqual(data["total_productos"], 1)
+        with TestClient(app) as client:
+            response = client.get("/v1/dashboard/")
+            self.assertEqual(response.status_code, 200)
+            
+            data = response.json()
+            self.assertIn("total_productos", data)
+            self.assertIn("entradas_hoy", data)
+            self.assertIn("salidas_hoy", data)
+            self.assertIn("alertas_activas", data)
+            self.assertEqual(data["total_productos"], 1)
 
     def test_obtener_perfil_autorizado(self):
-        # Enviar petición con el token mock del administrador de prueba
-        headers = {"Authorization": f"Bearer mock_access_token_{self.admin_user.id}"}
-        response = self.client.get("/v1/auth/perfil/", headers=headers)
-        self.assertEqual(response.status_code, 200)
-        
-        data = response.json()
-        self.assertEqual(data["username"], "admin_test")
-        self.assertEqual(data["rol"], "admin")
-        self.assertIn("operaciones_hoy", data)
-        self.assertIn("total_este_mes", data)
+        with TestClient(app) as client:
+            headers = {"Authorization": f"Bearer mock_access_token_{self.admin_user.id}"}
+            response = client.get("/v1/auth/perfil/", headers=headers)
+            self.assertEqual(response.status_code, 200)
+            
+            data = response.json()
+            self.assertEqual(data["username"], "admin_test")
+            self.assertEqual(data["rol"], "admin")
+            self.assertIn("operaciones_hoy", data)
+            self.assertIn("total_este_mes", data)
