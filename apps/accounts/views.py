@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
 from apps.accounts.models import CustomUser
-from .decorators import login_required_custom, operador_required, consultor_required
+from .decorators import login_required_custom, operador_required, consultor_required, admin_required
 from django.db import models
 
 def vista_login(request):
@@ -61,8 +61,7 @@ def vista_logout(request):
 def vista_registro(request):
     """
     Crea una nueva cuenta de usuario con rol CONSULTOR (solo lectura).
-    Los roles operador y admin solo pueden ser asignados por un administrador
-    desde el panel de Django Admin.
+    Los roles operador y admin solo pueden ser asignados por un administrador.
 
     Validaciones:
       - username y password1 no pueden estar vacíos.
@@ -90,7 +89,7 @@ def vista_registro(request):
             return redirect('registro')
 
         # El autoregistro público asigna siempre rol CONSULTOR (solo lectura).
-        # Para otorgar roles operador o admin, usar Django Admin.
+        # Para otorgar rol operador, usar la gestión de usuarios (admin).
         CustomUser.objects.create_user(
             username=username,
             password=password1,
@@ -344,6 +343,64 @@ def _redirigir_por_rol(user):
         return redirect('dashboard_operador')
     else:
         return redirect('dashboard_consultor')
+
+
+ROLES_ASIGNABLES_POR_ADMIN = frozenset({
+    CustomUser.OPERADOR,
+    CustomUser.CONSULTOR,
+})
+
+
+@admin_required
+def vista_gestion_usuarios(request):
+    """
+    Lista usuarios operador y consultor para que el admin pueda cambiar su rol.
+    Los administradores no aparecen ni pueden ser modificados desde aquí.
+    """
+    usuarios = CustomUser.objects.exclude(
+        rol=CustomUser.ADMIN,
+    ).filter(is_superuser=False).order_by('username')
+    return render(request, 'accounts/usuarios.html', {
+        'usuarios': usuarios,
+    })
+
+
+@admin_required
+def cambiar_rol_usuario(request, pk):
+    """
+    Cambia el rol de un usuario entre operador y consultor.
+    Solo acepta POST. Rechaza administradores y roles no permitidos.
+    """
+    if request.method != 'POST':
+        return redirect('gestion_usuarios')
+
+    nuevo_rol = request.POST.get('rol', '').strip()
+    if nuevo_rol not in ROLES_ASIGNABLES_POR_ADMIN:
+        messages.error(request, 'Rol no válido. Solo se permite Operador o Consultor.')
+        return redirect('gestion_usuarios')
+
+    try:
+        usuario = CustomUser.objects.get(pk=pk)
+    except CustomUser.DoesNotExist:
+        messages.error(request, 'Usuario no encontrado')
+        return redirect('gestion_usuarios')
+
+    if usuario.es_admin() or usuario.is_superuser:
+        messages.error(request, 'No se puede modificar el rol de un administrador')
+        return redirect('gestion_usuarios')
+
+    if usuario.rol == nuevo_rol:
+        messages.info(request, f'{usuario.username} ya tiene el rol {usuario.get_rol_display()}')
+        return redirect('gestion_usuarios')
+
+    rol_anterior = usuario.get_rol_display()
+    usuario.rol = nuevo_rol
+    usuario.save(update_fields=['rol'])
+    messages.success(
+        request,
+        f'Rol de {usuario.username} actualizado: {rol_anterior} → {usuario.get_rol_display()}',
+    )
+    return redirect('gestion_usuarios')
 
 
 @login_required_custom

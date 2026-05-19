@@ -12,4 +12,6 @@ urlpatterns = [
     path('2fa/disable/',  views.vista_2fa_disable, name='2fa_disable'),
     path('operador/mis-movimientos/', views.vista_mis_movimientos, name='mis_movimientos'),
     path('consultor/reportes/',       views.vista_reportes_consultor, name='reportes_consultor'),
+    path('usuarios/',                 views.vista_gestion_usuarios,   name='gestion_usuarios'),
+    path('usuarios/<uuid:pk>/rol/',   views.cambiar_rol_usuario,      name='cambiar_rol_usuario'),
 ]

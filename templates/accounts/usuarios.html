@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}Usuarios{% endblock %}
+{% block content %}
+
+<div class="ph">
+  <div>
+    <div class="ph-eyebrow">Administración</div>
+    <div class="ph-title">Gestión de usuarios</div>
+    <div class="ph-sub">Cambia el rol entre Operador y Consultor. Los administradores no se listan aquí.</div>
+  </div>
+</div>
+
+{% if messages %}
+  {% for msg in messages %}
+  <div class="msg {% if msg.tags == 'success' %}msg-ok{% elif msg.tags == 'error' %}msg-error{% else %}msg-info{% endif %}">
+    {{ msg }}
+  </div>
+  {% endfor %}
+{% endif %}
+
+<div class="panel">
+  <div class="panel-header">
+    <span class="panel-title">Usuarios del sistema</span>
+    <input id="buscador" type="text" placeholder="Buscar usuario..."
+      oninput="filtrarUsuarios(this.value)"
+      style="border:1px solid #F0E0E0;border-radius:8px;
+      padding:6px 12px;font-size:12px;font-family:'Montserrat',sans-serif;
+      outline:none;width:220px">
+  </div>
+  <table class="data">
+    <thead>
+      <tr>
+        <th>Usuario</th>
+        <th>Nombre</th>
+        <th>Correo</th>
+        <th style="text-align:center">Rol actual</th>
+        <th>Cambiar rol</th>
+      </tr>
+    </thead>
+    <tbody id="tabla-usuarios">
+      {% for u in usuarios %}
+      <tr data-buscar="{{ u.username|lower }} {{ u.nombre_completo|lower }} {{ u.correo|lower }}">
+        <td style="font-weight:600;color:#1a0808">{{ u.username }}</td>
+        <td style="color:#7a3a3a">{{ u.nombre_completo|default:"—" }}</td>
+        <td style="color:#7a3a3a;font-size:12px">{{ u.correo|default:u.email|default:"—" }}</td>
+        <td style="text-align:center">
+          {% if u.rol == 'operador' %}
+          <span class="pill pill-warn">Operador</span>
+          {% else %}
+          <span class="pill pill-ok">Consultor</span>
+          {% endif %}
+        </td>
+        <td>
+          <form method="POST" action="{% url 'cambiar_rol_usuario' u.id %}"
+            style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            {% csrf_token %}
+            <select name="rol" required
+              style="border:1px solid #F0E0E0;border-radius:8px;
+              padding:6px 10px;font-size:12px;font-family:'Montserrat',sans-serif;
+              outline:none;min-width:130px">
+              <option value="operador" {% if u.rol == 'operador' %}selected{% endif %}>
+                Operador
+              </option>
+              <option value="consultor" {% if u.rol == 'consultor' %}selected{% endif %}>
+                Consultor
+              </option>
+            </select>
+            <button type="submit" class="btn btn-primary"
+              style="font-size:11px;padding:6px 14px">
+              Guardar
+            </button>
+          </form>
+        </td>
+      </tr>
+      {% empty %}
+      <tr id="fila-vacia">
+        <td colspan="5" style="text-align:center;padding:40px;color:#b07070">
+          No hay usuarios operador o consultor registrados
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div style="margin-top:16px;padding:14px 18px;background:#FFF8F8;
+  border:1px solid #F0E0E0;border-radius:10px;font-size:12px;color:#7a3a3a;line-height:1.6">
+  <strong style="color:#1a0808">Permisos por rol</strong><br>
+  <strong>Operador:</strong> puede registrar entradas, salidas y ajustes de inventario.<br>
+  <strong>Consultor:</strong> solo lectura — visualiza inventario y reportes.<br>
+  Los cambios aplican en el próximo inicio de sesión del usuario afectado.
+</div>
+
+<script>
+function filtrarUsuarios(q) {
+  q = q.toLowerCase().trim();
+  var filas = document.querySelectorAll('#tabla-usuarios tr[data-buscar]');
+  var visibles = 0;
+  filas.forEach(function(tr) {
+    var ok = !q || tr.getAttribute('data-buscar').indexOf(q) !== -1;
+    tr.style.display = ok ? '' : 'none';
+    if (ok) visibles++;
+  });
+  var aviso = document.getElementById('fila-sin-resultados');
+  if (!aviso && filas.length) {
+    aviso = document.createElement('tr');
+    aviso.id = 'fila-sin-resultados';
+    aviso.innerHTML = '<td colspan="5" style="text-align:center;padding:32px;color:#b07070">Sin coincidencias</td>';
+    document.getElementById('tabla-usuarios').appendChild(aviso);
+  }
+  if (aviso) aviso.style.display = (filas.length && visibles === 0) ? '' : 'none';
+}
+</script>
+
+{% endblock %}

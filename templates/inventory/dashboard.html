@@ -13,6 +13,18 @@
     <div class="ph-title">Dashboard</div>
     <div class="ph-sub">Resumen del sistema de inventario</div>
   </div>
+  {% if request.user.rol == 'admin' or request.user.is_superuser %}
+  <div class="ph-actions">
+    <a href="{% url 'gestion_usuarios' %}" class="btn btn-primary">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none"
+        stroke="white" stroke-width="2">
+        <circle cx="6" cy="5" r="2.5"/>
+        <path d="M1 14c0-2.5 2.2-4 5-4s5 1.5 5 4"/>
+      </svg>
+      Gestionar usuarios
+    </a>
+  </div>
+  {% endif %}
 </div>
 
 <!-- KPI CARDS -->

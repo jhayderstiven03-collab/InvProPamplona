@@ -8,3 +8,8 @@ class CustomUserAdmin(UserAdmin):
     fieldsets     = UserAdmin.fieldsets + (
         ("Rol InvPro", {"fields": ("rol",)}),
     )
+
+    def save_model(self, request, obj, form, change):
+        if obj.is_superuser and obj.rol != CustomUser.ADMIN:
+            obj.rol = CustomUser.ADMIN
+        super().save_model(request, obj, form, change)

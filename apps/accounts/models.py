@@ -24,7 +24,7 @@ class CustomUser(AbstractUser):
     direccion       = models.TextField(blank=True)
 
     def es_admin(self):
-        return self.rol == self.ADMIN
+        return self.rol == self.ADMIN or self.is_superuser
 
     def es_operador(self):
         return self.rol == self.OPERADOR
