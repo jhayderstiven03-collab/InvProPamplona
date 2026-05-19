@@ -60,7 +60,7 @@ class ProductoUpdate(BaseModel):
 # ── HEALTH ────────────────────────────────────────────────────────
 @app.get("/v1/health")
 async def health_check():
-    return {"status": "ok", "sistema": "InvPro", "version": "1.0.0"}
+    return {"status": "ok", "sistema": "InvPro-Jhayder-Confirmado", "version": "1.0.0"}
 
 # ── AUTH ──────────────────────────────────────────────────────────
 class LoginRequest(BaseModel):
